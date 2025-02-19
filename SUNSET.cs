@@ -1,4 +1,4 @@
-﻿using HutongGames.PlayMaker.Actions;
+using HutongGames.PlayMaker.Actions;
 using Modding;
 using System;
 using System.Linq;
@@ -261,6 +261,7 @@ namespace SUNSET
             }
             orig(self, saveSlot, callback);
         }
+
         private void HealthManager_TakeDamage(On.HealthManager.orig_TakeDamage orig, HealthManager self, HitInstance hitInstance)
         {
             orig(self, hitInstance);
@@ -453,6 +454,8 @@ namespace SUNSET
         private void PlayMakerFSM_Start(On.PlayMakerFSM.orig_Start orig, PlayMakerFSM self)
         {
             orig(self);
+
+
             if (self.gameObject.name == "Halo" && self.FsmName == "Rotation")
             {
                 self.enabled = false;
@@ -476,7 +479,9 @@ namespace SUNSET
                             go.Recycle();
                         }
                     }
+                    GameObject.Find("_GameCameras").GetComponent<GameCameras>().cameraShakeFSM.enabled = false;
                 });
+
 
                 var RG = self.CopyState("Rage Comb", "RG");
                 RG.RemoveAction<SpawnObjectFromGlobalPool>();
@@ -982,6 +987,8 @@ namespace SUNSET
                 NAIL = self.GetState("CW Spawn").GetAction<SpawnObjectFromGlobalPool>().gameObject.Value;
                 ORB = self.GetState("Spawn Fireball").GetAction<SpawnObjectFromGlobalPool>().gameObject.Value;
 
+
+
                 self.GetState("CW Fire").RemoveAction<AudioPlayerOneShotSingle>();
                 self.GetState("CCW Fire").RemoveAction<AudioPlayerOneShotSingle>();
 
@@ -1399,6 +1406,8 @@ namespace SUNSET
 
                 if (scene.name == "GG_Workshop")
                 {
+                    GameObject.Find("_GameCameras").GetComponent<GameCameras>().cameraShakeFSM.enabled = true;
+                    GameObject.Find("_GameCameras").GetComponent<GameCameras>().cameraShakeFSM.SetState("New Scene Reset");
                     changed = false;
                     SwitchDetectAndChange();
                     Invoke("HaloSummon",2f);
@@ -3367,6 +3376,10 @@ namespace SUNSET
                         go.LocateMyFSM("Control").SendEvent("FIRE");
                         go.LocateMyFSM("Control").SendEvent("END");
                     }
+                    else if(go.name.Contains("Impact Particles"))
+                    {
+                        go.Recycle();
+                    }
                 }
                 Invoke("ObjClear", 0.1f);
                 if(HardMode == 1)
@@ -3825,6 +3838,7 @@ namespace SUNSET
                 var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
                 beam.transform.localScale *= Factor1;
                 beam.AddComponent<BeamAuto_Small>();
+                beam.AddComponent<ObjRecycle>();
                 StartCoroutine(DelayedExecution(0.75f, scaleFactor));
                 IEnumerator DelayedExecution(float time, float impactScaleFactor)
                 {
@@ -3840,6 +3854,7 @@ namespace SUNSET
             void Impact(float x, float y, float impactScaleFactor)
             {
                 var orb = Instantiate(ORB, new Vector3(x, y, -0.001f), Quaternion.Euler(0, 0, RY * 180f));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 pt.GetComponent<ParticleSystem>().emissionRate = 2000;
@@ -3891,6 +3906,7 @@ namespace SUNSET
                 float random = (RY + 1) / 2;
                 Vector3 SummonPosition = new Vector3((float)Math.Cos(angle) * R * random, (float)Math.Sin(angle) * R * random, 0);
                 var orb = Instantiate(ORB, HALO1.transform.position + SummonPosition, Quaternion.Euler(0, 0, RY * 180f));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 pt.GetComponent<ParticleSystem>().emissionRate = 1000;
@@ -3949,6 +3965,7 @@ namespace SUNSET
             void Start()
             {
                 var orb = Instantiate(ORB, BOSS.transform.position + new Vector3(-0.1f, 2f, 0f), new Quaternion(0, 0, 0, 0));
+                orb.AddComponent<ObjRecycle>();
                 ORBIMPACT = orb.LocateMyFSM("Orb Control").GetState("Impact").GetAction<AudioPlaySimple>().oneShotClip.Value as AudioClip;
                 var heroHurter = orb.transform.Find("Hero Hurter").gameObject;
                 heroHurter.SetActive(false);
@@ -4229,6 +4246,7 @@ namespace SUNSET
                 float random = (RY + 1) / 2;
                 Vector3 SummonPosition = new Vector3((float)Math.Cos(angle) * R * random, (float)Math.Sin(angle) * R * random, 0);
                 var orb = Instantiate(ORB, gameObject.transform.position + SummonPosition, Quaternion.Euler(0, 0, RY * 180f));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 pt.GetComponent<ParticleSystem>().emissionRate = 1000;
@@ -4793,10 +4811,12 @@ namespace SUNSET
                     beam1.transform.localScale = new Vector3(beam1.transform.localScale.x, beam1.transform.localScale.y * 0.3f, beam1.transform.localScale.z);
                     beam1.AddComponent<BeamAuto_flower>();
                     beam1.GetComponent<BeamAuto_flower>().SetR(r);
+                    beam1.AddComponent<ObjRecycle>();
                     var beam2 = Instantiate(BEAM, HALO1.transform.position, Quaternion.Euler(0, 0, i * 360 / count + 180));
                     beam2.transform.localScale = new Vector3(beam2.transform.localScale.x, beam2.transform.localScale.y * 0.3f, beam2.transform.localScale.z);
                     beam2.AddComponent<BeamAuto_flower_Reverse>();
                     beam2.GetComponent<BeamAuto_flower_Reverse>().SetR(r);
+                    beam2.AddComponent<ObjRecycle>();
                 }
                 WaveActive();
             }
@@ -4853,10 +4873,12 @@ namespace SUNSET
                     beam1.transform.localScale = new Vector3(beam1.transform.localScale.x, beam1.transform.localScale.y * 0.3f, beam1.transform.localScale.z);
                     beam1.AddComponent<BeamAuto_flower>();
                     beam1.GetComponent<BeamAuto_flower>().SetR(r);
+                    beam1.AddComponent<ObjRecycle>();
                     var beam2 = Instantiate(BEAM, HALO1.transform.position, Quaternion.Euler(0, 0, i * 360 / count + 180));
                     beam2.transform.localScale = new Vector3(beam2.transform.localScale.x, beam2.transform.localScale.y * 0.3f, beam2.transform.localScale.z);
                     beam2.AddComponent<BeamAuto_flower_Reverse>();
                     beam2.GetComponent<BeamAuto_flower_Reverse>().SetR(r);
+                    beam2.AddComponent<ObjRecycle>();
                 }
                 WaveActive();
             }
@@ -4931,75 +4953,79 @@ namespace SUNSET
             }
             void SummonOne()
             {
-                float summonX = BOSS.transform.position.x;
-                float summonY = 20;
-                float scaleFactor = 3f * Factor1;
-                if (p4)
+                if (BOSS.GetComponent<HealthManager>().hp > 0)
                 {
-                    summonX = 4 * RX + HeroController.instance.transform.position.x;
-                    if (summonX > pos15.x && summonX < pos16.x)
+                    float summonX = BOSS.transform.position.x;
+                    float summonY = 20;
+                    float scaleFactor = 3f * Factor1;
+                    if (p4)
                     {
-                        summonY = pos15.y;
-                    }
-                    else if (summonX > pos17.x && summonX < pos18.x)
-                    {
-                        summonY = pos17.y;
-                    }
-                    else if (summonX > pos19.x && summonX < pos20.x)
-                    {
-                        summonY = pos19.y;
-                    }
-                    else if (summonX > pos21.x && summonX < pos22.x)
-                    {
-                        summonY = pos21.y;
+                        summonX = 4 * RX + HeroController.instance.transform.position.x;
+                        if (summonX > pos15.x && summonX < pos16.x)
+                        {
+                            summonY = pos15.y;
+                        }
+                        else if (summonX > pos17.x && summonX < pos18.x)
+                        {
+                            summonY = pos17.y;
+                        }
+                        else if (summonX > pos19.x && summonX < pos20.x)
+                        {
+                            summonY = pos19.y;
+                        }
+                        else if (summonX > pos21.x && summonX < pos22.x)
+                        {
+                            summonY = pos21.y;
+                        }
+                        else
+                        {
+                            summonY = 148f;
+                        }
                     }
                     else
                     {
-                        summonY = 148f;
+                        if (p2)
+                        {
+                            if (summonX > pos1.x && summonX < pos2.x)
+                            {
+                                summonY = pos1.y;
+                            }
+                            else if (summonX > pos3.x && summonX < pos4.x)
+                            {
+                                summonY = pos3.y;
+                            }
+                            else if (summonX > pos5.x && summonX < pos6.x)
+                            {
+                                summonY = pos5.y;
+                            }
+                            else if (summonX > pos7.x && summonX < pos8.x)
+                            {
+                                summonY = pos7.y;
+                            }
+                            else if (summonX > pos9.x && summonX < pos10.x)
+                            {
+                                summonY = pos9.y;
+                            }
+                            else if (summonX > pos11.x && summonX < pos12.x)
+                            {
+                                summonY = pos11.y;
+                            }
+                            else if (summonX > pos13.x && summonX < pos14.x)
+                            {
+                                summonY = pos13.y;
+                            }
+                        }
                     }
-                }
-                else
-                {
-                    if (p2)
+                    var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
+                    beam.AddComponent<ObjRecycle>();
+                    beam.transform.localScale *= Factor1 * 1.5f;
+                    beam.AddComponent<BeamAuto_Big>();
+                    StartCoroutine(DelayedExecution(1f, scaleFactor));
+                    IEnumerator DelayedExecution(float time, float impactScaleFactor)
                     {
-                        if (summonX > pos1.x && summonX < pos2.x)
-                        {
-                            summonY = pos1.y;
-                        }
-                        else if (summonX > pos3.x && summonX < pos4.x)
-                        {
-                            summonY = pos3.y;
-                        }
-                        else if (summonX > pos5.x && summonX < pos6.x)
-                        {
-                            summonY = pos5.y;
-                        }
-                        else if (summonX > pos7.x && summonX < pos8.x)
-                        {
-                            summonY = pos7.y;
-                        }
-                        else if (summonX > pos9.x && summonX < pos10.x)
-                        {
-                            summonY = pos9.y;
-                        }
-                        else if (summonX > pos11.x && summonX < pos12.x)
-                        {
-                            summonY = pos11.y;
-                        }
-                        else if (summonX > pos13.x && summonX < pos14.x)
-                        {
-                            summonY = pos13.y;
-                        }
+                        yield return new WaitForSeconds(time);
+                        Impact(summonX, summonY, impactScaleFactor);
                     }
-                }
-                var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
-                beam.transform.localScale *= Factor1 * 1.5f;
-                beam.AddComponent<BeamAuto_Big>();
-                StartCoroutine(DelayedExecution(1f, scaleFactor));
-                IEnumerator DelayedExecution(float time, float impactScaleFactor)
-                {
-                    yield return new WaitForSeconds(time);
-                    Impact(summonX, summonY, impactScaleFactor);
                 }
             }
             void SummonLoop()
@@ -5068,6 +5094,7 @@ namespace SUNSET
                 var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
                 beam.transform.localScale *= Factor1;
                 beam.AddComponent<BeamAuto_Small>();
+                beam.AddComponent<ObjRecycle>();
                 StartCoroutine(DelayedExecution(0.75f, scaleFactor));
                 IEnumerator DelayedExecution(float time, float impactScaleFactor)
                 {
@@ -5083,6 +5110,7 @@ namespace SUNSET
             void Impact(float x, float y, float impactScaleFactor)
             {
                 var orb = Instantiate(ORB, new Vector3(x, y, -0.001f), Quaternion.Euler(0, 0, RY * 180f));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 if(settings_Pt_.on)
@@ -5169,6 +5197,7 @@ namespace SUNSET
                     summonY = 148f;
                 }
                 var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
+                beam.AddComponent<ObjRecycle>();
                 beam.transform.localScale *= Factor1 * 1.5f;
                 beam.AddComponent<BeamAuto_Big>();
                 StartCoroutine(DelayedExecution(1f, scaleFactor));
@@ -5204,6 +5233,7 @@ namespace SUNSET
                     summonY = 148f;
                 }
                 var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
+                beam.AddComponent<ObjRecycle>();
                 beam.transform.localScale *= Factor1;
                 beam.AddComponent<BeamAuto_Small>();
                 StartCoroutine(DelayedExecution(0.75f, scaleFactor));
@@ -5221,6 +5251,7 @@ namespace SUNSET
             void Impact(float x, float y, float impactScaleFactor)
             {
                 var orb = Instantiate(ORB, new Vector3(x, y, -0.001f), Quaternion.Euler(0, 0, RY * 180f));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 if (settings_Pt_.on)
@@ -5329,6 +5360,7 @@ namespace SUNSET
                     float scaleFactor = 3f * Factor1;
                     
                     var beam = Instantiate(BEAM, new Vector3(summonX, summonY, 0), Quaternion.Euler(0, 0, 90));
+                    beam.AddComponent<ObjRecycle>();
                     beam.transform.localScale *= Factor1;
                     beam.AddComponent<BeamAuto_Small>();
                     StartCoroutine(DelayedExecution1(0.75f, scaleFactor));
@@ -5354,6 +5386,7 @@ namespace SUNSET
             void Impact(float x, float y, float impactScaleFactor)
             {
                 var orb = Instantiate(ORB, new Vector3(x, y, -0.001f), Quaternion.Euler(0, 0, RY * 180f));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 pt.GetComponent<ParticleSystem>().emissionRate = 2000;
@@ -5451,6 +5484,7 @@ namespace SUNSET
                 float NailSummonX = (float)Math.Cos(DegreesToRadians(NailAngle)) * NailR;
                 float NailSummonY = (float)Math.Sin(DegreesToRadians(NailAngle)) * NailR;
                 var beam = Instantiate(BEAM,BOSS.transform.position + new Vector3(0, 2.5f, 0), Quaternion.Euler(0, 0, NailAngle));
+                beam.AddComponent<ObjRecycle>();
                 beam.transform.localScale = new Vector3(beam.transform.localScale.x, beam.transform.localScale.y * (0.7f + 0.5f * RX), beam.transform.localScale.z);
                 beam.SetActive(true);
                 Beams.Add(beam);
@@ -5565,6 +5599,7 @@ namespace SUNSET
                         float OrbSummonX = (float)Math.Cos(DegreesToRadians(OrbAngle)) * OrbR;
                         float OrbSummonY = (float)Math.Sin(DegreesToRadians(OrbAngle)) * OrbR;
                         var orb = Instantiate(ORB, BOSS.transform.position + new Vector3(OrbSummonX / 5, OrbSummonY / 5 + 2.5f, 0), Quaternion.Euler(0, 0, 0));
+                        orb.AddComponent<ObjRecycle>();
                         Orbs.Add(orb);
                         var hh = orb.transform.Find("Hero Hurter").gameObject;
                         hh.GetComponent<CircleCollider2D>().enabled = false;
@@ -5636,6 +5671,7 @@ namespace SUNSET
                         float OrbSummonX = (float)Math.Cos(DegreesToRadians(OrbAngle)) * OrbR;
                         float OrbSummonY = (float)Math.Sin(DegreesToRadians(OrbAngle)) * OrbR;
                         var orb = Instantiate(ORB, BOSS.transform.position + new Vector3(OrbSummonX / 5, OrbSummonY / 5 + 2.5f, 0), Quaternion.Euler(0, 0, 0));
+                        orb.AddComponent<ObjRecycle>();
                         orb.transform.localScale *= 0.8f + 0.3f * RY;
                         Orbs.Add(orb);
                         var hh = orb.transform.Find("Hero Hurter").gameObject;
@@ -5723,6 +5759,7 @@ namespace SUNSET
                 float random = (RY + 1) / 2;
                 Vector3 SummonPosition = new Vector3((float)Math.Cos(angle) * R * random, (float)Math.Sin(angle) * R * random, 0);
                 var orb = Instantiate(ORB, HALO1.transform.position + SummonPosition, Quaternion.Euler(0, 0, 0));
+                orb.AddComponent<ObjRecycle>();
                 orb.transform.localScale *= 0.8f + 0.3f * RY;
                 orb.transform.localScale *= 0.8f + RX * 0.3f;
                 orb.AddComponent<OrbAuto>();
@@ -6242,6 +6279,7 @@ namespace SUNSET
                     beam.LocateMyFSM("Control").SendEvent("FIRE");
                     beam.LocateMyFSM("Control").SetState("End");
                     beam.LocateMyFSM("Control").SendEvent("END");
+                    beam.AddComponent<ObjRecycle>();
                     BOSS.GetComponent<AudioSource>().PlayOneShot(NAILCHARGE, 1f);
                 }
                 Beams.Clear();
@@ -6488,6 +6526,7 @@ namespace SUNSET
                 float angle = RX * (float)Math.PI;
                 Vector3 SummonPosition = new Vector3((float)Math.Cos(angle) * 16, (float)Math.Sin(angle) * 8, 0);
                 var orb = Instantiate(ORB, HeroController.instance.gameObject.transform.position + SummonPosition, new Quaternion(0, 0, 0, 0));
+                orb.AddComponent<ObjRecycle>();
                 var pt = orb.transform.Find("Impact Particles").gameObject;
                 pt.transform.SetParent(null);
                 pt.GetComponent<ParticleSystem>().emissionRate = 1000;
@@ -6513,6 +6552,7 @@ namespace SUNSET
             public void On()
             {
                 var orb = Instantiate(ORB, BOSS.transform.position + new Vector3(-0.1f, 2f, 0f), new Quaternion(0, 0, 0, 0));
+                orb.AddComponent<ObjRecycle>();
                 ORBIMPACT = orb.LocateMyFSM("Orb Control").GetState("Impact").GetAction<AudioPlaySimple>().oneShotClip.Value as AudioClip;
                 var heroHurter = orb.transform.Find("Hero Hurter").gameObject;
                 heroHurter.SetActive(false);
